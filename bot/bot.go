@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"wow-news-bot/helpers"
 
 	"gopkg.in/telegram-bot-api.v4"
 )
@@ -16,9 +17,7 @@ var (
 func createBot() {
 	var err error
 	botInstance, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
-	if err != nil {
-		log.Panic(err)
-	}
+	helpers.Check(err)
 	log.Printf("Authorized on account %s", botInstance.Self.UserName)
 }
 
@@ -28,9 +27,7 @@ func setupChannelID() {
 		log.Println("There is not output telegram channel")
 	} else {
 		channelIDVarInt, err := strconv.ParseInt(channelIDVar, 10, 64)
-		if err != nil {
-			log.Panic(err)
-		}
+		helpers.Check(err)
 		channelID = channelIDVarInt
 		log.Printf("Output telegram channel setted as %d", channelIDVarInt)
 	}
@@ -46,9 +43,7 @@ func ObserveUpdates(subscribeChannel, unsubscribeChannel chan int64) {
 	createBot()
 	setupChannelID()
 	updates, err := GetUpdates()
-	if err != nil {
-		log.Panic(err)
-	}
+	helpers.Check(err)
 	for update := range updates {
 		if update.Message == nil {
 			continue
@@ -65,9 +60,14 @@ func GetBot() *tgbotapi.BotAPI {
 	return botInstance
 }
 
-func SendMessage(text string) {
+func SendMessage(text string) (bool, error) {
 	if channelID != -1 {
 		msg := tgbotapi.NewMessage(channelID, text)
-		botInstance.Send(msg)
+		_, err := botInstance.Send(msg)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
 	}
+	return false, nil
 }

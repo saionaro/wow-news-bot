@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"time"
+	"wow-news-bot/helpers"
 	"wow-news-bot/types"
 )
 
@@ -22,12 +22,6 @@ var (
 	sended = make(map[string]bool)
 )
 
-func check(err error) {
-	if err != nil {
-		log.Panic(err)
-	}
-}
-
 func LoadCache() {
 	if _, err := os.Stat(cacheFilePath); err != nil {
 		if os.IsNotExist(err) {
@@ -36,7 +30,7 @@ func LoadCache() {
 		}
 	}
 	cache, err := ioutil.ReadFile(cacheFilePath)
-	check(err)
+	helpers.Check(err)
 	var objmap map[string]bool
 	parseErr := json.Unmarshal(cache, &objmap)
 	if parseErr != nil {
@@ -49,12 +43,12 @@ func LoadCache() {
 func syncCache() {
 	fmt.Println("Starting cache sync...")
 	cacheFile, err := os.OpenFile(cacheFilePath, os.O_RDWR|os.O_CREATE, 0666)
-	check(err)
+	helpers.Check(err)
 	defer cacheFile.Close()
 	jsonString, parseErr := json.Marshal(sended)
-	check(parseErr)
+	helpers.Check(parseErr)
 	n2, writeErr := cacheFile.Write(jsonString)
-	check(writeErr)
+	helpers.Check(writeErr)
 	fmt.Printf("Wrote %d bytes\n", n2)
 }
 
@@ -69,7 +63,7 @@ func MarkSended(item *types.NewsItem) {
 func CalcHash(item *types.NewsItem) string {
 	hasher := md5.New()
 	hasher.Reset()
-	io.WriteString(hasher, item.Title+item.Href)
+	io.WriteString(hasher, item.Href)
 	hash := hasher.Sum(nil)
 	return hex.EncodeToString(hash)
 }

@@ -1,4 +1,4 @@
-package newsDeamon
+package newsdeamon
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"wow-news-bot/types"
 )
 
-const newsCheckTimeout = 5
+const newsCheckTimeoutMins = 5
 
 var (
 	newsChannel          = make(chan []types.NewsItem)
@@ -42,7 +42,7 @@ func checkNews() {
 
 func Start(freshNewsChannel chan []types.NewsItem) {
 	notificationsChannel = freshNewsChannel
-	newsCheckTicker := time.NewTicker(time.Duration(newsCheckTimeout) * time.Minute)
+	newsCheckTicker := time.NewTicker(time.Duration(newsCheckTimeoutMins) * time.Minute)
 	defer newsCheckTicker.Stop()
 	for {
 		select {

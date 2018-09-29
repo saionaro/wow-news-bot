@@ -4,7 +4,7 @@ import (
 	"log"
 	"wow-news-bot/bot"
 	"wow-news-bot/cacher"
-	"wow-news-bot/newsDeamon"
+	"wow-news-bot/newsdeamon"
 	"wow-news-bot/types"
 )
 
@@ -17,15 +17,17 @@ var (
 func sendNews(freshNews []types.NewsItem) {
 	log.Println("Starting news broadcast...")
 	for i := len(freshNews) - 1; i >= 0; i-- {
-		cacher.MarkSended(&freshNews[i])
-		bot.SendMessage(freshNews[i].Title + "\n" + freshNews[i].Href)
+		_, err := bot.SendMessage(freshNews[i].Title + "\n" + freshNews[i].Href)
+		if err == nil {
+			cacher.MarkSended(&freshNews[i])
+		}
 	}
 }
 
 func main() {
 	cacher.LoadCache()
 	go cacher.StartSyncDeamon()
-	go newsDeamon.Start(freshNewsChannel)
+	go newsdeamon.Start(freshNewsChannel)
 	go bot.ObserveUpdates(subscribeChannel, unsubscribeChannel)
 	for {
 		select {
