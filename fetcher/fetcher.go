@@ -19,10 +19,13 @@ func FetchNews(channel chan []types.NewsItem) {
 	var newsList []types.NewsItem
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	helpers.Check(err)
-	doc.Find(".entry.first .entry-header h1 a").Each(func(i int, s *goquery.Selection) {
+	doc.Find(".entry.first").Each(func(i int, article *goquery.Selection) {
+		header := article.Find(".entry-header h1 a")
+		image := article.Find(".entry-content img")
 		item := types.NewsItem{
-			Title: strings.TrimSpace(s.Text()),
-			Href:  newsSourceHost + s.AttrOr("href", ""),
+			Title: strings.TrimSpace(header.Text()),
+			Href:  newsSourceHost + header.AttrOr("href", ""),
+			Image: image.AttrOr("src", ""),
 			Hash:  "",
 		}
 		item.Hash = cacher.CalcHash(&item)
