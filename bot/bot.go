@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"wow-news-bot/helpers"
+	"wow-news-bot/types"
 
 	"gopkg.in/telegram-bot-api.v4"
 )
@@ -60,14 +61,28 @@ func GetBot() *tgbotapi.BotAPI {
 	return botInstance
 }
 
-func SendMessage(text string) (bool, error) {
+func send(msg tgbotapi.Chattable) (bool, error) {
+	_, err := botInstance.Send(msg)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func SendMessage(msg *types.Message) (bool, error) {
 	if channelID != -1 {
-		msg := tgbotapi.NewMessage(channelID, text)
-		_, err := botInstance.Send(msg)
-		if err != nil {
-			return false, err
-		}
-		return true, nil
+		msg := tgbotapi.NewMessage(channelID, msg.Text)
+		return send(msg)
+	}
+	return false, nil
+}
+
+func SendImage(message *types.Message) (bool, error) {
+	if channelID != -1 {
+		photo := tgbotapi.FileBytes{Name: "teaser.jpg", Bytes: message.Image}
+		msg := tgbotapi.NewPhotoUpload(channelID, photo)
+		msg.Caption = message.Text
+		return send(msg)
 	}
 	return false, nil
 }
