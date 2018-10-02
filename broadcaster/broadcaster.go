@@ -4,7 +4,7 @@ import (
 	"log"
 	"wow-news-bot/bot"
 	"wow-news-bot/cacher"
-	"wow-news-bot/imageloader"
+	"wow-news-bot/fetcher"
 	"wow-news-bot/types"
 )
 
@@ -23,7 +23,7 @@ func Broadcast(freshNews []types.NewsItem) {
 			Image: make([]byte, 1),
 		}
 		if freshNews[i].Image != "" {
-			image, err := imageloader.DownloadImage(freshNews[i].Image)
+			image, err := fetcher.FetchImage(freshNews[i].Image)
 			if err == nil {
 				message.Image = image
 			}

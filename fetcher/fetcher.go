@@ -1,6 +1,9 @@
 package fetcher
 
 import (
+	"bytes"
+	"errors"
+	"io"
 	"net/http"
 	"wow-news-bot/helpers"
 	"wow-news-bot/newsfactory"
@@ -10,6 +13,23 @@ import (
 )
 
 const newsSourceHost string = "https://www.noob-club.ru"
+
+func FetchImage(url string) ([]byte, error) {
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New(res.Status)
+	}
+	var data bytes.Buffer
+	_, err = io.Copy(&data, res.Body)
+	if err != nil {
+		return nil, err
+	}
+	return data.Bytes(), nil
+}
 
 func FetchNews() []types.NewsItem {
 	res, err := http.Get(newsSourceHost)
