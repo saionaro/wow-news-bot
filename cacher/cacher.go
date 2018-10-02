@@ -6,38 +6,40 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"time"
 	"wow-news-bot/helpers"
 	"wow-news-bot/types"
+
+	"github.com/boltdb/bolt"
 )
 
 const (
 	cacheFilePath       string = "./cache.json"
+	cacheDBPath         string = "./cache.db"
+	bucket              string = "cache"
 	cacheSyncPeriodMins int    = 2
 )
 
 var (
 	sended = make(map[string]bool)
+	hasher = md5.New()
+	db     *bolt.DB
 )
 
+func UnloadCache() {
+	db.Close()
+}
+
 func LoadCache() {
-	if _, err := os.Stat(cacheFilePath); err != nil {
-		if os.IsNotExist(err) {
-			fmt.Println("Cache not found")
-			return
-		}
-	}
-	cache, err := ioutil.ReadFile(cacheFilePath)
+	var err error
+	db, err = bolt.Open(cacheDBPath, 0600, nil)
 	helpers.Check(err)
-	var objmap map[string]bool
-	parseErr := json.Unmarshal(cache, &objmap)
-	if parseErr != nil {
-		fmt.Println("Cache file is broken!")
-		return
-	}
-	sended = objmap
+
+	db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(bucket))
+		helpers.Check(err)
+		return nil
+	})
 }
 
 func syncCache() {
@@ -53,28 +55,35 @@ func syncCache() {
 }
 
 func CheckExistence(hash string) bool {
-	return sended[hash] || false
+	var exist bool
+	if db == nil {
+		return false
+	}
+	db.View(func(tx *bolt.Tx) error {
+		table := tx.Bucket([]byte(bucket))
+		value := table.Get([]byte(hash))
+		if len(value) > 0 {
+			exist = true
+		} else {
+			exist = false
+		}
+		return nil
+	})
+	return exist
 }
 
 func MarkSended(item *types.NewsItem) {
 	sended[item.Hash] = true
+	db.Update(func(tx *bolt.Tx) error {
+		table := tx.Bucket([]byte(bucket))
+		err := table.Put([]byte(item.Hash), []byte("1"))
+		return err
+	})
 }
 
 func CalcHash(item *types.NewsItem) string {
-	hasher := md5.New()
 	hasher.Reset()
 	io.WriteString(hasher, item.Href)
 	hash := hasher.Sum(nil)
 	return hex.EncodeToString(hash)
-}
-
-func StartSyncDeamon() {
-	cacheSyncTicker := time.NewTicker(time.Duration(cacheSyncPeriodMins) * time.Minute)
-	defer cacheSyncTicker.Stop()
-	for {
-		select {
-		case <-cacheSyncTicker.C:
-			go syncCache()
-		}
-	}
 }
