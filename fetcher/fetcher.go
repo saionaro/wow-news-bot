@@ -2,9 +2,8 @@ package fetcher
 
 import (
 	"net/http"
-	"strings"
-	"wow-news-bot/cacher"
 	"wow-news-bot/helpers"
+	"wow-news-bot/newsfactory"
 	"wow-news-bot/types"
 
 	"github.com/PuerkitoBio/goquery"
@@ -12,7 +11,7 @@ import (
 
 const newsSourceHost string = "https://www.noob-club.ru"
 
-func FetchNews(channel chan []types.NewsItem) {
+func FetchNews() []types.NewsItem {
 	res, err := http.Get(newsSourceHost)
 	helpers.Check(err)
 	defer res.Body.Close()
@@ -22,14 +21,12 @@ func FetchNews(channel chan []types.NewsItem) {
 	doc.Find(".entry.first").Each(func(i int, article *goquery.Selection) {
 		header := article.Find(".entry-header h1 a")
 		image := article.Find(".entry-content img")
-		item := types.NewsItem{
-			Title: strings.TrimSpace(header.Text()),
-			Href:  newsSourceHost + header.AttrOr("href", ""),
-			Image: image.AttrOr("src", ""),
-			Hash:  "",
-		}
-		item.Hash = cacher.CalcHash(&item)
+		item := newsfactory.Create(
+			header.Text(),
+			newsSourceHost+header.AttrOr("href", ""),
+			image.AttrOr("src", ""),
+		)
 		newsList = append(newsList, item)
 	})
-	channel <- newsList
+	return newsList
 }

@@ -33,8 +33,7 @@ func filterUnsendedNews(list []types.NewsItem) []types.NewsItem {
 
 func checkNews() {
 	fmt.Println("Starting check news...")
-	go fetcher.FetchNews(newsChannel)
-	newsList := filterUnsendedNews(<-newsChannel)
+	newsList := filterUnsendedNews(fetcher.FetchNews())
 	if len(newsList) > 0 {
 		notificationsChannel <- newsList
 	}
@@ -42,6 +41,8 @@ func checkNews() {
 
 func Start(freshNewsChannel chan []types.NewsItem) {
 	notificationsChannel = freshNewsChannel
+	go checkNews()
+	return
 	newsCheckTicker := time.NewTicker(time.Duration(newsCheckTimeoutMins) * time.Minute)
 	defer newsCheckTicker.Stop()
 	for {
