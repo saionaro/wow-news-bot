@@ -2,6 +2,7 @@ package newsdeamon
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 	"wow-news-bot/cacher"
 	"wow-news-bot/fetcher"
@@ -13,6 +14,7 @@ const newsCheckTimeoutMins = 5
 var (
 	newsChannel          = make(chan []types.NewsItem)
 	notificationsChannel chan []types.NewsItem
+	wowlessKeywords      = [4]string{"hearthstone", "overwatch", "heroes of the storm", "diablo"}
 )
 
 func filter(vs []types.NewsItem, f func(types.NewsItem) bool) []types.NewsItem {
@@ -25,6 +27,18 @@ func filter(vs []types.NewsItem, f func(types.NewsItem) bool) []types.NewsItem {
 	return vsf
 }
 
+func filterWowlessNews(list []types.NewsItem) []types.NewsItem {
+	return filter(list, func(item types.NewsItem) bool {
+		for i := 0; i < len(wowlessKeywords); i++ {
+			result, _ := regexp.MatchString("(?i)"+wowlessKeywords[i], item.Title)
+			if result {
+				return false
+			}
+		}
+		return true
+	})
+}
+
 func filterUnsendedNews(list []types.NewsItem) []types.NewsItem {
 	return filter(list, func(item types.NewsItem) bool {
 		return !cacher.CheckExistence(item.Hash)
@@ -33,7 +47,7 @@ func filterUnsendedNews(list []types.NewsItem) []types.NewsItem {
 
 func checkNews() {
 	fmt.Println("Starting check news...")
-	newsList := filterUnsendedNews(fetcher.FetchNews())
+	newsList := filterUnsendedNews(filterWowlessNews(fetcher.FetchNews()))
 	if len(newsList) > 0 {
 		notificationsChannel <- newsList
 	}

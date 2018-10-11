@@ -3,8 +3,6 @@ package cacher
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"wow-news-bot/helpers"
@@ -21,16 +19,31 @@ const (
 )
 
 var (
-	sended = make(map[string]bool)
-	hasher = md5.New()
-	db     *bolt.DB
+	hasher   = md5.New()
+	db       *bolt.DB
+	useCache = true
 )
 
 func UnloadCache() {
+	if db == nil {
+		return
+	}
 	db.Close()
 }
 
+func checkCacheStatus() bool {
+	disableCache := os.Getenv("DISABLE_CACHE")
+	if disableCache != "" {
+		useCache = false
+		return false
+	}
+	return true
+}
+
 func LoadCache() {
+	if !checkCacheStatus() {
+		return
+	}
 	var err error
 	db, err = bolt.Open(cacheDBPath, 0600, nil)
 	helpers.Check(err)
@@ -40,18 +53,6 @@ func LoadCache() {
 		helpers.Check(err)
 		return nil
 	})
-}
-
-func syncCache() {
-	fmt.Println("Starting cache sync...")
-	cacheFile, err := os.OpenFile(cacheFilePath, os.O_RDWR|os.O_CREATE, 0666)
-	helpers.Check(err)
-	defer cacheFile.Close()
-	jsonString, parseErr := json.Marshal(sended)
-	helpers.Check(parseErr)
-	n2, writeErr := cacheFile.Write(jsonString)
-	helpers.Check(writeErr)
-	fmt.Printf("Wrote %d bytes\n", n2)
 }
 
 func CheckExistence(hash string) bool {
@@ -73,7 +74,9 @@ func CheckExistence(hash string) bool {
 }
 
 func MarkSended(item *types.NewsItem) {
-	sended[item.Hash] = true
+	if db == nil {
+		return
+	}
 	db.Update(func(tx *bolt.Tx) error {
 		table := tx.Bucket([]byte(bucket))
 		err := table.Put([]byte(item.Hash), []byte("1"))
