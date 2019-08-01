@@ -14,7 +14,20 @@ const newsCheckTimeoutMins = 5
 var (
 	newsChannel          = make(chan []types.NewsItem)
 	notificationsChannel chan []types.NewsItem
-	wowlessKeywords      = [11]string{"hearthstone", "overwatch", "heroes of the storm", "diablo", "swtor", "hurtstone", "warframe", "mtg arena", "guild wars", "doom", "herostorm"}
+	wowlessKeywords      = [12]string{
+		"hearthstone",
+		"overwatch",
+		"heroes of the storm",
+		"diablo",
+		"swtor",
+		"hurtstone",
+		"warframe",
+		"mtg arena",
+		"guild wars",
+		"doom",
+		"herostorm",
+		"World of Warcraft тогда и сейчас",
+	}
 )
 
 func filter(vs []types.NewsItem, f func(types.NewsItem) bool) []types.NewsItem {
